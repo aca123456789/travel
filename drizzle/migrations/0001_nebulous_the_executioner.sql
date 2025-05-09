@@ -1,0 +1,1 @@
+ALTER TABLE "travel_notes" ADD COLUMN "location" text;
