@@ -72,8 +72,9 @@ export const action: ActionFunction = async ({ request }) => {
     errors.content = "请输入游记内容";
   }
   
-  if (mediaUrls.length === 0 || !mediaUrls.some((url, i) => mediaTypes[i] === "image")) {
-    errors.images = "请至少上传一张图片";
+  // 验证媒体文件
+  if (mediaUrls.length === 0) {
+    errors.images = "请至少上传一张图片或一个视频";
   }
   
   // Return errors if validation failed
@@ -351,10 +352,10 @@ export default function Publish() {
       return;
     }
     
-    // Check if we have at least one uploaded image
-    const hasUploadedImage = mediaItems.some(item => item.type === "image" && item.isUploaded);
-    if (!hasUploadedImage) {
-      alert("请至少上传一张图片");
+    // 检查是否有已上传的媒体文件
+    const uploadedMedia = mediaItems.filter(item => item.isUploaded);
+    if (uploadedMedia.length === 0) {
+      alert("请至少上传一张图片或一个视频");
       return;
     }
     
@@ -601,8 +602,8 @@ export default function Publish() {
               disabled={
                 isSubmitting || 
                 isUploading || 
-                uploadQueue.length > 0 || 
-                mediaItems.filter(item => item.type === "image" && item.isUploaded).length === 0
+                uploadQueue.length > 0 ||
+                mediaItems.filter(item => item.isUploaded).length === 0 // 禁用按钮，如果没有已上传的媒体文件
               }
               className="inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -615,6 +616,11 @@ export default function Publish() {
                 <>
                   <Loader2 className="animate-spin mr-2 h-5 w-5" />
                   等待上传完成...
+                </>
+              ) : mediaItems.filter(item => item.isUploaded).length === 0 ? (
+                <>
+                  <Upload className="mr-2 h-5 w-5" />
+                  请上传媒体文件
                 </>
               ) : (
                 <>
