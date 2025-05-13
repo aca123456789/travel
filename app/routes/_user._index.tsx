@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
-import { Search, MapPin, Calendar, Camera, User, LayoutGrid, LayoutList } from "lucide-react";
+import { Search, MapPin, User, LayoutGrid, LayoutList } from "lucide-react";
 import type { MetaFunction, LoaderFunction } from "@remix-run/node";
 import { getLoggedInUser } from "~/services/auth.server";
 import { getPublishedNotes } from "~/services/notes.server";
@@ -101,6 +101,10 @@ export default function Index() {
     (note.location && note.location.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
+  // Split notes for two-column layout
+  const leftColumnNotes = filteredNotes.filter((_: TravelNote, index: number) => index % 2 === 0);
+  const rightColumnNotes = filteredNotes.filter((_: TravelNote, index: number) => index % 2 !== 0);
+  
   // Format date
   const formatDate = (dateString: string | Date) => {
     if (!dateString) return "";
@@ -113,10 +117,14 @@ export default function Index() {
     if (note.media && note.media.length > 0) {
       // 优先使用第一张图片作为封面
       const coverImage = note.media.find(m => m.mediaType === "image");
-      if (coverImage) return coverImage.url;
+      if (coverImage) return { type: "image", url: coverImage.url };
+      
+      // 如果没有图片，但有视频，使用第一个视频
+      const coverVideo = note.media.find(m => m.mediaType === "video");
+      if (coverVideo) return { type: "video", url: coverVideo.url };
     }
     // 默认图片
-    return "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1000";
+    return { type: "image", url: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1000" };
   };
   
   return (
@@ -176,21 +184,167 @@ export default function Index() {
           
           {/* Travel notes grid/list */}
           <div className={`${isGridLayout ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
-            {filteredNotes.map((note: TravelNote) => (
-              <Link 
-                key={note.id} 
-                to={`/note/${note.id}`} 
-                className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 block"
-              >
-                {!isGridLayout ? (
-                  // 单列布局 - 水平排列的卡片
+            {isGridLayout ? (
+              <>
+                <div className="space-y-4">
+                  {leftColumnNotes.map((note: TravelNote) => (
+                    <Link 
+                      key={note.id} 
+                      to={`/note/${note.id}`} 
+                      className="group h-max bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 block"
+                    >
+                      {/* 双列布局 - 瀑布流卡片 */}
+                      <>
+                        <div className="relative overflow-hidden">
+                          {getNoteCoverImage(note).type === "image" ? (
+                            <img 
+                              src={getNoteCoverImage(note).url} 
+                              alt={note.title}
+                              className="w-full max-h-[200px] object-cover transform group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <video 
+                              src={getNoteCoverImage(note).url}
+                              className="w-full max-h-[200px] object-cover transform group-hover:scale-105 transition-transform duration-300"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60"></div>
+                          {note.location && (
+                            <div className="absolute bottom-2 left-2 flex items-center text-white">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              <span className="text-xs font-medium">{note.location}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
+                            {note.title}
+                          </h3>
+                          
+                          <p className="text-gray-600 mt-1 text-xs line-clamp-3">
+                            {note.content.replace(/<[^>]*>/g, '').substring(0, 120)}...
+                          </p>
+                          
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex items-center">
+                              {note.user.avatarUrl ? (
+                                <img 
+                                  src={note.user.avatarUrl} 
+                                  alt={note.user.nickname}
+                                  className="h-5 w-5 rounded-full ring-1 ring-white object-cover"
+                                />
+                              ) : (
+                                <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center ring-1 ring-white">
+                                  <User className="h-3 w-3 text-gray-500" />
+                                </div>
+                              )}
+                              <span className="ml-1 text-xs text-gray-600 truncate max-w-[80px]">{note.user.nickname}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {formatDate(note.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    </Link>
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  {rightColumnNotes.map((note: TravelNote) => (
+                    <Link 
+                      key={note.id} 
+                      to={`/note/${note.id}`} 
+                      className="group h-max bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 block"
+                    >
+                      {/* 双列布局 - 瀑布流卡片 */}
+                      <>
+                        <div className="relative overflow-hidden">
+                          {getNoteCoverImage(note).type === "image" ? (
+                            <img 
+                              src={getNoteCoverImage(note).url} 
+                              alt={note.title}
+                              className="w-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <video 
+                              src={getNoteCoverImage(note).url}
+                              className="w-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60"></div>
+                          {note.location && (
+                            <div className="absolute bottom-2 left-2 flex items-center text-white">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              <span className="text-xs font-medium">{note.location}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
+                            {note.title}
+                          </h3>
+                          
+                          <p className="text-gray-600 mt-1 text-xs line-clamp-3">
+                            {note.content.replace(/<[^>]*>/g, '').substring(0, 120)}...
+                          </p>
+                          
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex items-center">
+                              {note.user.avatarUrl ? (
+                                <img 
+                                  src={note.user.avatarUrl} 
+                                  alt={note.user.nickname}
+                                  className="h-5 w-5 rounded-full ring-1 ring-white object-cover"
+                                />
+                              ) : (
+                                <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center ring-1 ring-white">
+                                  <User className="h-3 w-3 text-gray-500" />
+                                </div>
+                              )}
+                              <span className="ml-1 text-xs text-gray-600 truncate max-w-[80px]">{note.user.nickname}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {formatDate(note.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            ) : (
+              // 单列布局
+              filteredNotes.map((note: TravelNote) => (
+                <Link 
+                  key={note.id} 
+                  to={`/note/${note.id}`} 
+                  className="group h-max bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 block"
+                >
+                  {/* 单列布局 - 水平排列的卡片 */}
                   <div className="flex flex-row h-[150px]">
                     <div className="relative w-1/3">
-                      <img 
-                        src={getNoteCoverImage(note)} 
-                        alt={note.title}
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {getNoteCoverImage(note).type === "image" ? (
+                        <img 
+                          src={getNoteCoverImage(note).url} 
+                          alt={note.title}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <video 
+                          src={getNoteCoverImage(note).url}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                          preload="metadata"
+                          muted
+                          playsInline
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60"></div>
                       {note.location && (
                         <div className="absolute bottom-2 left-2 flex items-center text-white">
@@ -229,52 +383,9 @@ export default function Index() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  // 双列布局 - 瀑布流卡片
-                  <>
-                    <div className="relative overflow-hidden">
-                      <img 
-                        src={getNoteCoverImage(note)} 
-                        alt={note.title}
-                        className="w-full aspect-[4/3] object-cover transform group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60"></div>
-                      {note.location && (
-                        <div className="absolute bottom-2 left-2 flex items-center text-white">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          <span className="text-xs font-medium">{note.location}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-primary-600 transition-colors duration-200">
-                        {note.title}
-                      </h3>
-                      
-                      <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center">
-                          {note.user.avatarUrl ? (
-                            <img 
-                              src={note.user.avatarUrl} 
-                              alt={note.user.nickname}
-                              className="h-5 w-5 rounded-full ring-1 ring-white object-cover"
-                            />
-                          ) : (
-                            <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center ring-1 ring-white">
-                              <User className="h-3 w-3 text-gray-500" />
-                            </div>
-                          )}
-                          <span className="ml-1 text-xs text-gray-600 truncate max-w-[50px]">{note.user.nickname}</span>
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {formatDate(note.createdAt)}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
           
           {/* Empty state */}
