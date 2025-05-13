@@ -3,6 +3,7 @@ import { getLoggedInUser } from "~/services/auth.server";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 
 export const action: ActionFunction = async ({ request }) => {
   try {
@@ -62,7 +63,26 @@ export const action: ActionFunction = async ({ request }) => {
     
     // Save file
     const buffer = Buffer.from(await uploadedFile.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
+    
+    if (fileType === "image") {
+      // 使用 sharp 压缩图片，保持较高的质量（85）
+      let sharpInstance = sharp(buffer);
+      
+      // 根据图片类型设置输出格式
+      if (uploadedFile.type === "image/jpeg") {
+        sharpInstance = sharpInstance.jpeg({ quality: 85 });
+      } else if (uploadedFile.type === "image/png") {
+        sharpInstance = sharpInstance.png({ quality: 85 });
+      }
+      
+      // 保存压缩后的图片
+      const compressedBuffer = await sharpInstance.toBuffer();
+      await fs.writeFile(filePath, compressedBuffer);
+      console.log(`图片压缩完成: ${fileName} (原大小: ${buffer.length} 字节, 压缩后: ${compressedBuffer.length} 字节)`);
+    } else {
+      // 对于视频或其他文件类型，直接保存原始文件
+      await fs.writeFile(filePath, buffer);
+    }
     
     // Return the file URL path
     const fileUrl = `/upload/${fileName}`;
