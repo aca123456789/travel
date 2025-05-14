@@ -220,15 +220,33 @@ export default function MyNotes() {
         <div className="space-y-4">
           {filteredNotes.map((note: TravelNote) => {
             const badge = getStatusBadge(note.status)
-            // Get the first image from media to use as the cover
-            const coverImage = note.media?.find((m: Media) => m.mediaType === 'image')?.url || 'https://placehold.co/600x400?text=无图片'
 
             return (
               <div key={note.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100">
                 <div className="p-4 sm:p-6">
                   <div className="sm:flex sm:items-start">
                     <div className="sm:flex-shrink-0 mb-4 sm:mb-0">
-                      <img src={coverImage} alt={note.title} className="h-24 w-24 object-cover rounded-lg" />
+                      {note.media?.find((m: Media) => m.mediaType === 'image') ? (
+                        <img 
+                          src={note.media?.find((m: Media) => m.mediaType === 'image')?.url || 'https://placehold.co/600x400?text=无图片'} 
+                          alt={note.title} 
+                          className="h-24 w-24 object-cover rounded-lg" 
+                        />
+                      ) : note.media?.find((m: Media) => m.mediaType === 'video') ? (
+                        <video 
+                          src={note.media?.find((m: Media) => m.mediaType === 'video')?.url} 
+                          className="h-24 w-24 object-cover rounded-lg"
+                          preload="metadata"
+                          muted
+                          playsInline
+                        />
+                      ) : (
+                        <img 
+                          src="https://placehold.co/600x400?text=无图片" 
+                          alt={note.title} 
+                          className="h-24 w-24 object-cover rounded-lg" 
+                        />
+                      )}
                     </div>
                     <div className="sm:ml-4 sm:flex-1">
                       <div className="flex flex-wrap gap-y-2 justify-between items-start">
@@ -300,13 +318,31 @@ export default function MyNotes() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNotes.map((note: TravelNote) => {
             const badge = getStatusBadge(note.status)
-            // Get the first image from media to use as the cover
-            const coverImage = note.media?.find((m: Media) => m.mediaType === 'image')?.url || 'https://placehold.co/600x400?text=无图片'
 
             return (
               <div key={note.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 flex flex-col">
                 <div className="relative">
-                  <img src={coverImage} alt={note.title} className="w-full h-48 object-cover" />
+                  {note.media?.find((m: Media) => m.mediaType === 'image') ? (
+                    <img 
+                      src={note.media?.find((m: Media) => m.mediaType === 'image')?.url || 'https://placehold.co/600x400?text=无图片'} 
+                      alt={note.title} 
+                      className="w-full h-48 object-cover" 
+                    />
+                  ) : note.media?.find((m: Media) => m.mediaType === 'video') ? (
+                    <video 
+                      src={note.media?.find((m: Media) => m.mediaType === 'video')?.url} 
+                      className="w-full h-48 object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img 
+                      src="https://placehold.co/600x400?text=无图片" 
+                      alt={note.title} 
+                      className="w-full h-48 object-cover" 
+                    />
+                  )}
                   <div className={`absolute top-3 right-3 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${badge.color}`}>
                     {badge.icon}
                     <span className="ml-1">{badge.text}</span>
